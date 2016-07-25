@@ -21,11 +21,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -44,13 +46,13 @@ public class MainActivity extends AppCompatActivity {
     private ImageView capturedImageHolder;
     private float mDist;
     private Bitmap bm;
+    private float ratio = 9f / 16f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-
         cameraPreviewLayout = (FrameLayout) findViewById(R.id.camera_preview);
         capturedImageHolder = (ImageView) findViewById(R.id.captured_image);
         Button captureButton = (Button) findViewById(R.id.button);
@@ -58,6 +60,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 camera.takePicture(null, null, pictureCallback);
+            }
+        });
+        cameraPreviewLayout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                if (cameraPreviewLayout.getLayoutParams().height == (int) (cameraPreviewLayout.getLayoutParams().width * ratio)) {
+                    return;
+                }
+                cameraPreviewLayout.getLayoutParams().width = cameraPreviewLayout.getWidth();
+                cameraPreviewLayout.getLayoutParams().height = (int) (cameraPreviewLayout.getLayoutParams().width * ratio);
+                cameraPreviewLayout.requestLayout();
             }
         });
     }
@@ -73,18 +86,11 @@ public class MainActivity extends AppCompatActivity {
         public void onPictureTaken(byte[] data, Camera camera) {
             bm = BitmapFactory.decodeByteArray(data, 0, data.length);
             if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-
-                // Notice that width and height are reversed
-                float ratio = 1;
-                if (mImageSurfaceView.mPreviewSize.height >= mImageSurfaceView.mPreviewSize.width)
-                    ratio = (float) mImageSurfaceView.mPreviewSize.height / (float) mImageSurfaceView.mPreviewSize.width;
-                else
-                    ratio = (float) mImageSurfaceView.mPreviewSize.width / (float) mImageSurfaceView.mPreviewSize.height;
                 // Setting post rotate to 90
                 Matrix mtx = new Matrix();
                 mtx.postRotate(90);
                 bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), bm.getHeight(), mtx, true);
-                bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), (int) (bm.getWidth() / ratio));
+                bm = Bitmap.createBitmap(bm, 0, 0, bm.getWidth(), (int) (bm.getWidth() * ratio));
             } else {// LANDSCAPE MODE
                 //No need to reverse width and height
                 Bitmap scaled = Bitmap.createScaledBitmap(bm, bm.getWidth(), bm.getHeight(), true);
@@ -94,14 +100,20 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "khoong duoc roi", Toast.LENGTH_LONG).show();
                 return;
             }
-            capturedImageHolder.setImageBitmap(bm);
+//            capturedImageHolder.setImageBitmap(bm);
+
+            Intent intent = new Intent(MainActivity.this, CaptureResultActivity.class);
+            ByteArrayOutputStream bs = new ByteArrayOutputStream();
+            bm.compress(Bitmap.CompressFormat.PNG, 100, bs);
+            intent.putExtra("bitmap", bs.toByteArray());
+            startActivity(intent);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestWritePermission();
             } else {
                 asyncSave();
             }
-            camera.startPreview();
+//            camera.startPreview();
         }
     };
 

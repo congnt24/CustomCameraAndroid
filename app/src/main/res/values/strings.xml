@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">DemoCustomCamera</string>
-        <string name="hello_world">Hello world!</string>
-        <string name="action_settings">Settings</string>
-        <string name="capture_button">Capture Image</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="capture_button">Capture Image</string>
 
 </resources>
